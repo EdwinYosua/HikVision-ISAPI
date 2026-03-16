@@ -4,9 +4,9 @@
 # $Cred = Import-Clixml "E:\ISAPI\NVRConfig.xml"
 
 #VARIABLES
-# $NVR_IP = $Cred.$NVR_IP
-# $User = $Cred.UserName
-# $Pass = $Cred.GetNetworkCredential().Password
+$NVR_IP = $NVR_IP #$Cred.$NVR_IP
+$User = $NVR_USER #$Cred.UserName
+$Pass = $NVR_PASS #$Cred.GetNetworkCredential().Password
 
 
 # FUNCTIONS
@@ -33,15 +33,6 @@ function Get-XmlNodeValue {
     return $node.InnerText
 }
 
-
-#=================================================================> START GET TTL USED CHANNELS
-[xml]$getNvrChannels = curl.exe -sS --digest -u "$User`:$Pass" `
-    "http://$NVR_IP/ISAPI/ContentMgmt/InputProxy/channels/status" `
-
-$ttlUsedChannels = (Get-XmlNodeValue `
-        -Xml $getNvrChannels `
-        -XPath "//h:InputProxyChannelStatus/h:id").Count
-
 #=================================================================> START GET DEVICE INFO
 [xml]$getNvrDeviceInfo = curl.exe -sS --digest -u "$User`:$Pass" `
     "http://$NVR_IP/ISAPI/System/deviceInfo" `
@@ -57,9 +48,27 @@ $totalChannels = Get-XmlNodeValue `
     -Xml $getDeviceCapabilities `
     -XPath "//h:RacmCap/h:inputProxyNums"
 
+#=================================================================> START GET TTL USED CHANNELS
+[xml]$getNvrChannels = curl.exe -sS --digest -u "$User`:$Pass" `
+    "http://$NVR_IP/ISAPI/ContentMgmt/InputProxy/channels/status"
+
+# create namespace manager
+$ns = New-Object System.Xml.XmlNamespaceManager($getNvrChannels.NameTable)
+$ns.AddNamespace("hik", "http://www.hikvision.com/ver20/XMLSchema")
+
+# count all <id> nodes
+$ttlUsedChannels = ((
+        $getNvrChannels.SelectNodes("//hik:InputProxyChannelStatus/hik:id", $ns)
+    ).Count ) - $totalChannels
+
+
+# $ttlUsedChannels = (Get-XmlNodeValue `
+#         -Xml $getNvrChannels `
+#         -XPath "//h:InputProxyChannelStatus/h:id").Count
+
 # Create namespace manager
 # $ns = New-Object System.Xml.XmlNamespaceManager($getDeviceCapabilities.NameTable)
-# $ns.AddNamespace("h", "http://www.hikvision.com/ver20/XMLSchema")
+# $ns.AddNamespace("hik", "http://www.hikvision.com/ver20/XMLSchema")
 
 # # Extract total channels
 # $totalChannels = $getDeviceCapabilities.SelectSingleNode(
