@@ -10,7 +10,9 @@ $Pass = $NVR_PASS #$Cred.GetNetworkCredential().Password
 
 
 # FUNCTIONS
+#for SingleNode count
 function Get-XmlNodeValue {
+
     param (
         [Parameter(Mandatory)]
         [xml]$Xml,
@@ -32,6 +34,29 @@ function Get-XmlNodeValue {
 
     return $node.InnerText
 }
+#for SelectNodes (multiple node) count
+function Get-XmlNodeCount {
+    param (
+        [Parameter(Mandatory)]
+        [xml]$Xml,
+
+        [Parameter(Mandatory)]
+        [string]$XPath,
+
+        [string]$NamespaceUri = "http://www.hikvision.com/ver20/XMLSchema"
+    )
+
+    $ns = New-Object System.Xml.XmlNamespaceManager($Xml.NameTable)
+    $ns.AddNamespace("h", $NamespaceUri)
+
+    $nodes = $Xml.SelectNodes($XPath, $ns)
+
+    if ($null -eq $nodes) {
+        return 0
+    }
+
+    return $nodes.Count
+}
 
 #=================================================================> START GET DEVICE INFO
 [xml]$getNvrDeviceInfo = curl.exe -sS --digest -u "$User`:$Pass" `
@@ -52,19 +77,18 @@ $totalChannels = Get-XmlNodeValue `
 [xml]$getNvrChannels = curl.exe -sS --digest -u "$User`:$Pass" `
     "http://$NVR_IP/ISAPI/ContentMgmt/InputProxy/channels/status"
 
+$ttlUsedChannels = ( (Get-XmlNodeCount `
+            -Xml $getNvrChannels `
+            -XPath "//h:InputProxyChannelStatus/h:id") ) - $totalChannels
+
 # create namespace manager
-$ns = New-Object System.Xml.XmlNamespaceManager($getNvrChannels.NameTable)
-$ns.AddNamespace("hik", "http://www.hikvision.com/ver20/XMLSchema")
+# $ns = New-Object System.Xml.XmlNamespaceManager($getNvrChannels.NameTable)
+# $ns.AddNamespace("hik", "http://www.hikvision.com/ver20/XMLSchema")
 
 # count all <id> nodes
-$ttlUsedChannels = ((
-        $getNvrChannels.SelectNodes("//hik:InputProxyChannelStatus/hik:id", $ns)
-    ).Count ) - $totalChannels
-
-
-# $ttlUsedChannels = (Get-XmlNodeValue `
-#         -Xml $getNvrChannels `
-#         -XPath "//h:InputProxyChannelStatus/h:id").Count
+# $ttlUsedChannels = ((
+#         $getNvrChannels.SelectNodes("//hik:InputProxyChannelStatus/hik:id", $ns)
+#     ).Count ) - $totalChannels
 
 # Create namespace manager
 # $ns = New-Object System.Xml.XmlNamespaceManager($getDeviceCapabilities.NameTable)
