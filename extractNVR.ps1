@@ -12,28 +12,51 @@ $Pass = $NVR_PASS #$Cred.GetNetworkCredential().Password
 # FUNCTIONS
 #for SingleNode count
 function Get-XmlNodeValue {
-
     param (
         [Parameter(Mandatory)]
         [xml]$Xml,
 
         [Parameter(Mandatory)]
-        [string]$XPath,
-
-        [string]$NamespaceUri = "http://www.hikvision.com/ver20/XMLSchema"
+        [string]$XPath
     )
 
+    # auto-detect namespace
+    $namespace = $Xml.DocumentElement.NamespaceURI
+
     $ns = New-Object System.Xml.XmlNamespaceManager($Xml.NameTable)
-    $ns.AddNamespace("h", $NamespaceUri)
+    $ns.AddNamespace("h", $namespace)
 
     $node = $Xml.SelectSingleNode($XPath, $ns)
 
     if ($null -eq $node) {
-        return "kosong"
+        return $null   # better than 0 for text values
     }
 
     return $node.InnerText
 }
+# function Get-XmlNodeValue {
+
+#     param (
+#         [Parameter(Mandatory)]
+#         [xml]$Xml,
+
+#         [Parameter(Mandatory)]
+#         [string]$XPath,
+
+#         [string]$NamespaceUri = "http://www.hikvision.com/ver20/XMLSchema"
+#     )
+
+#     $ns = New-Object System.Xml.XmlNamespaceManager($Xml.NameTable)
+#     $ns.AddNamespace("h", $NamespaceUri)
+
+#     $node = $Xml.SelectSingleNode($XPath, $ns)
+
+#     if ($null -eq $node) {
+#         return 0
+#     }
+
+#     return $node.InnerText
+# }
 #for SelectNodes (multiple node) count
 function Get-XmlNodeCount {
     param (
@@ -41,13 +64,14 @@ function Get-XmlNodeCount {
         [xml]$Xml,
 
         [Parameter(Mandatory)]
-        [string]$XPath,
-
-        [string]$NamespaceUri = "http://www.hikvision.com/ver20/XMLSchema"
+        [string]$XPath
     )
 
+    # auto-detect namespace
+    $namespace = $Xml.DocumentElement.NamespaceURI
+
     $ns = New-Object System.Xml.XmlNamespaceManager($Xml.NameTable)
-    $ns.AddNamespace("h", $NamespaceUri)
+    $ns.AddNamespace("h", $namespace)
 
     $nodes = $Xml.SelectNodes($XPath, $ns)
 
@@ -57,6 +81,29 @@ function Get-XmlNodeCount {
 
     return $nodes.Count
 }
+# function Get-XmlNodeCount {
+    
+#     param (
+#         [Parameter(Mandatory)]
+#         [xml]$Xml,
+
+#         [Parameter(Mandatory)]
+#         [string]$XPath,
+
+#         [string]$NamespaceUri = "http://www.hikvision.com/ver20/XMLSchema"
+#     )
+
+#     $ns = New-Object System.Xml.XmlNamespaceManager($Xml.NameTable)
+#     $ns.AddNamespace("h", $NamespaceUri)
+
+#     $nodes = $Xml.SelectNodes($XPath, $ns)
+
+#     if ($null -eq $nodes) {
+#         return 0
+#     }
+
+#     return $nodes.Count
+# }
 
 #=================================================================> START GET DEVICE INFO
 [xml]$getNvrDeviceInfo = curl.exe -sS --digest -u "$User`:$Pass" `
@@ -79,7 +126,7 @@ $totalChannels = Get-XmlNodeValue `
 
 $ttlUsedChannels = ( (Get-XmlNodeCount `
             -Xml $getNvrChannels `
-            -XPath "//h:InputProxyChannelStatus/h:id") ) - $totalChannels
+            -XPath "//h:InputProxyChannelStatus/h:id") )
 
 # create namespace manager
 # $ns = New-Object System.Xml.XmlNamespaceManager($getNvrChannels.NameTable)
@@ -104,7 +151,7 @@ $ttlUsedChannels = ( (Get-XmlNodeCount `
 
 #=================================================================> OUTPUT
 
-Write-Host "$DeviceName 20.22 (Up X Days, Unused Channels $ttlUsedChannels of $totalChannels)"
+Write-Host "$DeviceName XX.XX (Up X Days, Unused Channels $($totalChannels - $ttlUsedChannels) of $totalChannels)"
 
 
 # $getNvrDeviceInfo.deviceInfo.ChildNodes # Show XML Tree Data
