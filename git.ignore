@@ -1,9 +1,0 @@
-# Ignore everything
-*
-
-# Allow folders
-!*/
-
-# Allow these two PowerShell scripts
-!extractNVR.ps1
-!main.ps1
