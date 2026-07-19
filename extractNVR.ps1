@@ -95,7 +95,7 @@ $unUsedChannels = $totalChannels - $ttlUsedChannels
 
 #=================================================================> OUTPUT
 
-Write-Host "$DeviceName $NVR_IP (Up X Days, Unused Channels $unUsedChannels of $totalChannels)"
-
+Write-Host "$DeviceName $NVR_IP (Up X Days, Unused Channels $unUsedChannels of $totalChannels)" #For Dailies
+# Write-Host "$unUsedChannels of $totalChannels"
 
 # $getNvrDeviceInfo.deviceInfo.ChildNodes # Show XML Tree Data
